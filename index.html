@@ -1,0 +1,615 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PiMind. Une intelligence qui vit chez vous.</title>
+<meta name="description" content="Une intelligence complète, achetée une seule fois, qui vit chez vous. Elle sait, elle retient, elle ne raconte rien à personne.">
+<meta property="og:title" content="PiMind. Une intelligence qui vit chez vous.">
+<meta property="og:description" content="Sans abonnement. Sans compte. Sans internet. Elle sait, elle retient, et rien ne sort de chez vous.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0c11;
+    --ink:#eae7de;
+    --dim:#a49f92;
+    --gold:#e0b36a;
+    --line:rgba(234,231,222,.13);
+    --r:14px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    background:
+      radial-gradient(1200px 700px at 70% -10%, rgba(224,179,106,.07), transparent 60%),
+      radial-gradient(900px 600px at 10% 110%, rgba(224,179,106,.05), transparent 60%),
+      var(--bg);
+    color:var(--ink);
+    font-family:'Outfit',system-ui,sans-serif;font-weight:300;line-height:1.6;
+    overflow-x:clip;
+  }
+  ::selection{background:var(--gold);color:var(--bg)}
+  .serif{font-family:'Cormorant Garamond',serif}
+
+  .progress{position:fixed;top:0;left:0;height:2px;background:var(--gold);z-index:50;transform-origin:left;width:100%;transform:scaleX(0)}
+  @supports (animation-timeline: scroll()){
+    .progress{animation:grow linear both;animation-timeline:scroll(root)}
+    @keyframes grow{to{transform:scaleX(1)}}
+  }
+  .brand{position:fixed;top:1.2rem;left:6vw;z-index:40;font-family:'Cormorant Garamond',serif;font-size:1.25rem;letter-spacing:.02em;mix-blend-mode:difference}
+
+  h1,h2{font-family:'Cormorant Garamond',serif;font-weight:500;line-height:1.08;letter-spacing:-.01em}
+  h1{font-size:clamp(2.6rem,6.5vw,5.2rem)}
+  h2{font-size:clamp(2rem,4.6vw,3.4rem)}
+  h1 em,h2 em{font-style:italic;color:var(--gold)}
+  .lead{margin-top:1.3rem;font-size:clamp(1rem,1.5vw,1.2rem);color:var(--dim);max-width:52ch}
+
+  /* ===== scènes du film : collées à l'écran, jouées par le scroll ===== */
+  .scene{position:relative;height:280vh}
+  .scene.first{height:200vh}
+  .scene .pin{
+    position:sticky;top:0;height:100dvh;overflow:hidden;
+    display:flex;align-items:center;padding:0 6vw;
+  }
+  .scene .frame{max-width:1050px;width:100%;margin:0 auto}
+  .scene.center .frame{text-align:center;max-width:820px}
+
+  /* le film : la scène entre, vit, puis se dissout dans la suivante (piloté en JS) */
+  .scene .frame{will-change:opacity,transform}
+
+  /* cascade interne quand la scène devient visible */
+  .st{opacity:0;transform:translateY(20px);transition:opacity .8s cubic-bezier(.16,1,.3,1),transform .8s cubic-bezier(.16,1,.3,1)}
+  .lit .st{opacity:1;transform:none}
+  .lit .st:nth-of-type(1){transition-delay:.05s}
+  .lit .st:nth-of-type(2){transition-delay:.18s}
+  .lit .st:nth-of-type(3){transition-delay:.31s}
+  .lit .st:nth-of-type(4){transition-delay:.44s}
+  .lit .st:nth-of-type(5){transition-delay:.57s}
+
+  /* dialogue */
+  .talk{margin-top:2.2rem;display:grid;gap:.9rem;max-width:520px}
+  .bub{padding:.85rem 1.25rem;border-radius:18px;font-size:.97rem;opacity:0;transform:translateY(14px) scale(.98);transition:opacity .6s cubic-bezier(.16,1,.3,1),transform .6s cubic-bezier(.16,1,.3,1)}
+  .lit .bub:nth-child(1){opacity:1;transform:none;transition-delay:.5s}
+  .lit .bub:nth-child(2){opacity:1;transform:none;transition-delay:1.15s}
+  .lit .bub:nth-child(3){opacity:1;transform:none;transition-delay:1.95s}
+  .lit .bub:nth-child(4){opacity:1;transform:none;transition-delay:2.6s}
+  .bub.q{justify-self:end;background:rgba(234,231,222,.07);border:1px solid var(--line);border-bottom-right-radius:6px}
+  .bub.a{justify-self:start;background:rgba(224,179,106,.09);border:1px solid rgba(224,179,106,.28);border-bottom-left-radius:6px}
+  .bub.a b{color:var(--gold);font-weight:500}
+
+  /* deux colonnes + emblèmes */
+  .duo{display:grid;grid-template-columns:1.25fr .75fr;gap:5vw;align-items:center}
+  .embx{display:flex;justify-content:center}
+  @media (max-width:820px){.duo{grid-template-columns:1fr}.embx{display:none}}
+  .emb{width:min(250px,25vw);height:auto;overflow:visible}
+  .emb *{fill:none;stroke:var(--gold);stroke-width:1.6;stroke-linecap:round;vector-effect:non-scaling-stroke}
+  .emb .soft{stroke:rgba(234,231,222,.35)}
+  .emb .draw{stroke-dasharray:600;stroke-dashoffset:600;transition:stroke-dashoffset 1.7s cubic-bezier(.4,0,.2,1) .4s}
+  .lit .emb .draw{stroke-dashoffset:0}
+  .emb .dot{fill:var(--gold);stroke:none;opacity:0;transition:opacity .8s 1.5s}
+  .lit .emb .dot{opacity:1}
+
+  /* piliers */
+  .pillars{margin-top:2.4rem;display:grid;gap:1.8rem}
+  .pillar{display:grid;grid-template-columns:auto 1fr;gap:1.3rem;align-items:start;text-align:left}
+  .pillar .g{font-family:'Cormorant Garamond',serif;font-size:1.9rem;color:var(--gold);line-height:1.2;min-width:1.6em}
+  .pillar h4{font-weight:500;font-size:1.1rem;margin-bottom:.3rem}
+  .pillar p{color:var(--dim);font-size:.96rem;max-width:50ch}
+
+  /* ===== sections interactives (pas de pin, on prend son temps) ===== */
+  .act{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:16vh 6vw}
+  .act .wrap{max-width:760px;width:100%}
+  .act.center{text-align:center}
+  .ask{background:rgba(15,18,24,.6);backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:22px;padding:2.6rem;margin-top:2rem}
+  .ask h3{font-family:'Cormorant Garamond',serif;font-weight:500;font-size:clamp(1.5rem,3vw,2.1rem);line-height:1.15}
+  .hint{color:var(--dim);margin-top:.6rem;font-size:.92rem}
+  .chips{display:flex;flex-wrap:wrap;gap:.7rem;margin-top:1.8rem}
+  .center .chips{justify-content:center}
+  .chip{
+    font-family:inherit;font-weight:400;font-size:.95rem;color:var(--ink);
+    background:none;border:1px solid var(--line);border-radius:999px;
+    padding:.7rem 1.3rem;cursor:pointer;transition:all .25s;
+  }
+  .chip:hover{border-color:var(--gold)}
+  .chip:active{transform:scale(.97)}
+  .chip.on{background:var(--gold);border-color:var(--gold);color:var(--bg);font-weight:500}
+  .saved{display:inline-block;margin-top:1rem;font-size:.85rem;color:var(--gold);opacity:0;transition:opacity .4s}
+  .saved.show{opacity:1}
+
+  /* objections */
+  .obj{margin-top:2rem;display:grid;gap:.8rem;text-align:left}
+  .ob{border:1px solid var(--line);border-radius:16px;background:rgba(15,18,24,.6);overflow:hidden}
+  .ob button.head{
+    all:unset;display:flex;justify-content:space-between;align-items:center;gap:1rem;
+    width:100%;padding:1.05rem 1.3rem;cursor:pointer;font-family:inherit;font-size:1rem;font-weight:400;color:var(--ink);box-sizing:border-box;
+  }
+  .ob button.head:hover{color:var(--gold)}
+  .ob .plus{color:var(--gold);font-size:1.3rem;transition:transform .3s;flex:none}
+  .ob.open .plus{transform:rotate(45deg)}
+  .ob .body{max-height:0;overflow:hidden;transition:max-height .45s cubic-bezier(.16,1,.3,1)}
+  .ob .body p{padding:0 1.3rem 1.15rem;color:var(--dim);font-size:.95rem}
+  .ob .body b{color:var(--ink);font-weight:500}
+  .ob.open .body{max-height:420px}
+
+  .stars{display:flex;gap:.4rem;margin-top:1.5rem}
+  .center .stars{justify-content:center}
+  .star{background:none;border:none;font-size:2rem;color:var(--line);cursor:pointer;transition:color .2s,transform .15s}
+  .star:hover{transform:scale(1.15)}
+  .star.on{color:var(--gold)}
+  textarea,input[type=email],input[type=text]{
+    width:100%;margin-top:1.2rem;background:rgba(15,18,24,.65);border:1px solid var(--line);
+    border-radius:var(--r);color:var(--ink);font-family:inherit;font-weight:300;
+    font-size:1rem;padding:.95rem 1.15rem;outline:none;transition:border-color .25s;text-align:left;
+  }
+  textarea:focus,input:focus{border-color:var(--gold)}
+  textarea{min-height:90px;resize:vertical}
+  ::placeholder{color:#736f64}
+  label{display:block;margin-top:1.3rem;font-size:.9rem;color:var(--dim);text-align:left}
+
+  .btn{
+    margin-top:1.8rem;font-family:inherit;font-weight:500;font-size:1.02rem;
+    background:var(--gold);color:var(--bg);border:none;border-radius:999px;
+    padding:.95rem 2.4rem;cursor:pointer;transition:transform .2s,opacity .2s,box-shadow .3s;
+    position:relative;overflow:hidden;
+  }
+  .btn:hover{transform:translateY(-2px);box-shadow:0 8px 40px rgba(224,179,106,.22)}
+  .btn:active{transform:scale(.97)}
+  .btn:disabled{opacity:.5;cursor:default;transform:none;box-shadow:none}
+  .btn.ghost{background:none;border:1px solid var(--line);color:var(--ink)}
+  .btn.ghost:hover{border-color:var(--gold);box-shadow:none}
+  .btn::after{
+    content:"";position:absolute;top:0;bottom:0;left:-70%;width:45%;
+    background:linear-gradient(105deg,transparent,rgba(255,255,255,.4),transparent);
+    transform:skewX(-18deg);animation:shine 4.5s ease-in-out infinite;
+  }
+  .btn.ghost::after{display:none}
+  @keyframes shine{0%,72%{left:-70%}88%,100%{left:130%}}
+  .msg{margin-top:1.1rem;font-size:.95rem;min-height:1.4em}
+  .msg.ok{color:var(--gold)}
+  .msg.err{color:#e08a7a}
+
+  footer{padding:3.5rem 6vw;border-top:1px solid var(--line);color:var(--dim);font-size:.85rem;display:flex;justify-content:space-between;flex-wrap:wrap;gap:1rem}
+
+  @media (prefers-reduced-motion: reduce){
+    .st,.bub,.emb .draw,.emb .dot{opacity:1;transform:none;transition:none;stroke-dashoffset:0}
+    .scene .frame{animation:none!important}
+    .scene{height:auto;min-height:100dvh}
+    .scene .pin{position:static;height:auto;padding:14vh 6vw}
+    .btn::after{animation:none;display:none}
+  }
+  @media (max-width:700px){.ask{padding:1.8rem 1.3rem}.act{padding:14vh 5vw}}
+</style>
+</head>
+<body>
+
+<div class="progress" aria-hidden="true"></div>
+<div class="brand">PiMind<span style="color:var(--gold)">.</span></div>
+
+<!-- SCÈNE 1 -->
+<div class="scene center first">
+  <div class="pin"><div class="frame">
+    <div class="st" style="display:flex;justify-content:center;margin-bottom:1.6rem">
+      <svg class="emb" style="width:110px" viewBox="0 0 100 100" aria-hidden="true">
+        <path class="draw" d="M20 52 L50 26 L80 52 L80 82 L20 82 Z"/>
+        <circle class="dot" cx="50" cy="60" r="4"/>
+      </svg>
+    </div>
+    <h1 class="st">Il existe une intelligence<br>qui <em>vit chez vous.</em></h1>
+    <p class="lead st" style="margin-inline:auto">Elle ne vit pas dans un centre de données à l'autre bout du monde. Elle vit dans un objet, posé sur un meuble, chez vous. Elle s'appelle PiMind.</p>
+    <div class="st" style="display:flex;gap:.8rem;justify-content:center;flex-wrap:wrap;margin-top:2.2rem">
+      <button class="btn" id="startStory">Découvrir son histoire</button>
+      <button class="btn ghost" id="skipToEnd">Être prévenu du lancement</button>
+    </div>
+  </div></div>
+</div>
+
+<!-- SCÈNE 2 -->
+<div class="scene">
+  <div class="pin"><div class="frame">
+    <h2 data-fx="left" data-at=".17">Elle sait. Vraiment.</h2>
+    <p class="lead" data-fx="left" data-at=".22">Toute une encyclopédie et une intelligence complète tiennent à l'intérieur. Posez-lui n'importe quelle question, à voix haute, même depuis l'autre pièce.</p>
+    <div class="talk">
+      <div class="bub q" data-fx="right" data-at=".30">Pourquoi le ciel est bleu ?</div>
+      <div class="bub a" data-fx="left" data-at=".38">La lumière du soleil se disperse dans l'air, et le <b>bleu</b> se disperse plus que le reste. Tu veux la version pour ta petite sœur ?</div>
+      <div class="bub q" data-fx="right" data-at=".48">Tu te souviens du gâteau de mamie ?</div>
+      <div class="bub a" data-fx="left" data-at=".56">Oui : la recette du 12 mars, avec la <b>fleur d'oranger</b>. Je te la ressors ?</div>
+    </div>
+  </div></div>
+</div>
+
+<!-- SCÈNE 3 -->
+<div class="scene">
+  <div class="pin"><div class="frame duo">
+    <div>
+      <h2 data-fx="left" data-at=".17">Ce que vous lui dites<br><em>reste entre vous.</em></h2>
+      <p class="lead" data-fx="left" data-at=".23">Les assistants en ligne envoient chacun de vos mots vers des serveurs que vous ne verrez jamais. PiMind ne le peut même pas : rien ne sort de l'objet. Vos secrets restent dans le cercle de votre maison.</p>
+      <div class="pillars">
+        <div class="pillar" data-fx="up" data-at=".34"><div class="g">◦</div><div><h4>Aucun compte</h4><p>Pas d'identifiant, pas de profil publicitaire, pas de conditions qui changent.</p></div></div>
+        <div class="pillar" data-fx="up" data-at=".44"><div class="g">◎</div><div><h4>Vos souvenirs restent des souvenirs</h4><p>Elle retient ce qui compte pour votre famille, et personne d'autre ne le lira jamais.</p></div></div>
+      </div>
+    </div>
+    <div class="embx">
+      <svg class="emb" data-fx="draw" data-at=".22" data-span=".35" viewBox="0 0 100 100" aria-hidden="true">
+        <circle class="soft draw" cx="50" cy="50" r="40"/>
+        <circle class="draw" cx="50" cy="50" r="26"/>
+        <circle class="dot" cx="50" cy="50" r="4.5"/>
+      </svg>
+    </div>
+  </div></div>
+</div>
+
+<!-- QUESTION 1 -->
+<section class="act center">
+  <div class="wrap lit-me">
+    <h2 class="st">À qui feriez-vous le plus confiance<br>pour vos questions <em>personnelles</em> ?</h2>
+    <div class="ask st">
+      <p class="hint" style="margin-top:0">Votre réponse est enregistrée automatiquement, sans compte.</p>
+      <div class="chips" data-q="trust" role="radiogroup" aria-label="Confiance">
+        <button class="chip" data-v="objet-chez-moi">Un objet qui reste chez moi</button>
+        <button class="chip" data-v="service-en-ligne">Un service en ligne connu</button>
+        <button class="chip" data-v="aucun">Aucune intelligence, jamais</button>
+      </div>
+      <span class="saved">Réponse enregistrée.</span>
+    </div>
+  </div>
+</section>
+
+<!-- SCÈNE 4 -->
+<div class="scene">
+  <div class="pin"><div class="frame duo">
+    <div>
+      <h2 data-fx="left" data-at=".17">Elle vit de lumière.</h2>
+      <p class="lead" data-fx="left" data-at=".23">Les intelligences en ligne consomment l'électricité de petites villes entières. PiMind consomme moins qu'une ampoule : un simple panneau solaire suffit à la faire vivre, indéfiniment.</p>
+      <div class="pillars">
+        <div class="pillar" data-fx="up" data-at=".34"><div class="g">☉</div><div><h4>Autonome en énergie</h4><p>Coupure de courant, cabane, voilier : elle continue de répondre.</p></div></div>
+        <div class="pillar" data-fx="up" data-at=".44"><div class="g">◌</div><div><h4>Sans internet</h4><p>Tout son savoir est embarqué. Elle n'a besoin de personne.</p></div></div>
+      </div>
+    </div>
+    <div class="embx">
+      <svg class="emb" data-fx="draw" data-at=".22" data-span=".35" viewBox="0 0 100 100" aria-hidden="true">
+        <circle class="draw" cx="50" cy="50" r="18"/>
+        <g class="soft">
+          <path class="draw" d="M50 18 L50 8"/><path class="draw" d="M50 82 L50 92"/>
+          <path class="draw" d="M18 50 L8 50"/><path class="draw" d="M82 50 L92 50"/>
+          <path class="draw" d="M27 27 L20 20"/><path class="draw" d="M73 27 L80 20"/>
+          <path class="draw" d="M27 73 L20 80"/><path class="draw" d="M73 73 L80 80"/>
+        </g>
+        <circle class="dot" cx="50" cy="50" r="4"/>
+      </svg>
+    </div>
+  </div></div>
+</div>
+
+<!-- SCÈNE 5 -->
+<div class="scene">
+  <div class="pin"><div class="frame duo">
+    <div>
+      <h2 data-fx="left" data-at=".17">Et surtout : elle est <em>à vous.</em></h2>
+      <p class="lead" data-fx="left" data-at=".23">Pendant que tout le reste devient un abonnement, PiMind s'achète une seule fois. Pas de mensualité, pas de compte, pas de service qui ferme un jour en emportant vos données.</p>
+      <div class="pillars">
+        <div class="pillar" data-fx="up" data-at=".34"><div class="g">1</div><div><h4>Un seul achat, à vie</h4><p>0 € par mois. Aucune option qui se verrouille plus tard.</p></div></div>
+        <div class="pillar" data-fx="up" data-at=".44"><div class="g">∞</div><div><h4>Elle grandit avec vous</h4><p>Elle retient ce qui compte pour votre famille et le retrouve des années après.</p></div></div>
+      </div>
+    </div>
+    <div class="embx">
+      <svg class="emb" data-fx="draw" data-at=".22" data-span=".35" viewBox="0 0 100 100" aria-hidden="true">
+        <circle class="soft draw" cx="50" cy="50" r="40"/>
+        <path class="draw" d="M42 36 L52 30 L52 68"/>
+        <path class="draw" d="M40 70 L64 70"/>
+      </svg>
+    </div>
+  </div></div>
+</div>
+
+<!-- OBJECTIONS -->
+<section class="act">
+  <div class="wrap lit-me">
+    <h2 class="st">« Oui, mais... »</h2>
+    <p class="lead st">Les vraies questions que tout le monde se pose. Réponses honnêtes.</p>
+    <div class="obj st">
+      <div class="ob">
+        <button class="head">Mon téléphone fait déjà tout ça.<span class="plus">+</span></button>
+        <div class="body"><p>Non : votre téléphone <b>envoie chaque question à des serveurs</b>, souvent contre un abonnement, et se nourrit de vos données pour la publicité. Sans réseau, son assistant devient muet. PiMind répond sans rien envoyer, sans réseau, sans abonnement : elle est toujours là, posée chez vous, disponible pour toute la famille à la voix.</p></div>
+      </div>
+      <div class="ob">
+        <button class="head">Mon ordinateur peut faire tourner une IA aussi.<span class="plus">+</span></button>
+        <div class="body"><p>C'est vrai, si vous savez le faire. Il faut l'installer, le maintenir, et laisser tourner une machine qui consomme <b>des centaines de watts</b>, du bruit et de la chaleur. PiMind est l'inverse : un objet fini, silencieux, qui consomme moins qu'une ampoule, utilisable par un enfant de 8 ans comme par une grand-mère. La différence entre un moteur sur un établi et une voiture.</p></div>
+      </div>
+      <div class="ob">
+        <button class="head">Les IA en ligne sont plus puissantes.<span class="plus">+</span></button>
+        <div class="body"><p>Oui, et nous le disons franchement. En échange, elles prennent <b>votre argent tous les mois et vos données tous les jours</b>. PiMind vise autre chose : assez d'intelligence pour l'essentiel du quotidien, avec une confidentialité totale et un coût nul après l'achat. La bonne question n'est pas « laquelle est la plus forte » mais « de combien ai-je vraiment besoin, et à quel prix ».</p></div>
+      </div>
+      <div class="ob">
+        <button class="head">Une enceinte connectée, c'est pareil et moins cher.<span class="plus">+</span></button>
+        <div class="body"><p>Une enceinte connectée est <b>un micro relié aux serveurs d'un géant</b> : sans internet elle ne sait rien, et tout ce qu'elle entend part ailleurs. Elle est moins chère parce que ce n'est pas elle le produit : c'est vous. PiMind contient son intelligence et son savoir. Rien ne sort, personne n'écoute.</p></div>
+      </div>
+      <div class="ob">
+        <button class="head">Et si elle tombe en panne, ou si vous disparaissez ?<span class="plus">+</span></button>
+        <div class="body"><p>C'est un objet, pas un service : <b>il ne peut pas « fermer »</b>. Si notre entreprise disparaissait demain, votre PiMind continuerait de fonctionner exactement pareil, puisqu'elle ne dépend de rien d'extérieur. Et c'est une machine réparable, pensée pour durer des décennies.</p></div>
+      </div>
+      <div class="ob">
+        <button class="head">Internet ne coupe presque jamais chez moi.<span class="plus">+</span></button>
+        <div class="body"><p>Le hors-ligne n'est pas d'abord une histoire de coupure. C'est une <b>garantie physique</b> : ce qui ne peut pas partir ne partira jamais, aucune fuite, aucun piratage de serveur, aucun changement de conditions. Le jour où votre assistant en ligne double son prix ou ferme, vous n'avez pas votre mot à dire. Avec un objet à vous, si.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- QUESTIONS 2 -->
+<section class="act center">
+  <div class="wrap lit-me">
+    <h2 class="st">De quoi auriez-vous besoin, <em>vous</em> ?</h2>
+    <div class="ask st">
+      <p class="hint" style="margin-top:0">Plusieurs choix possibles.</p>
+      <div class="chips" data-q="needs" data-multi aria-label="Besoins">
+        <button class="chip" data-v="aide-devoirs">Aide aux devoirs des enfants</button>
+        <button class="chip" data-v="vie-privee">Une IA qui ne m'espionne pas</button>
+        <button class="chip" data-v="hors-reseau">Un savoir qui marche sans réseau</button>
+        <button class="chip" data-v="memoire">Une mémoire pour un proche</button>
+        <button class="chip" data-v="solaire">Un outil autonome en énergie</button>
+        <button class="chip" data-v="pro">Un usage professionnel</button>
+      </div>
+      <h3 style="margin-top:2.6rem">Quel prix serait juste, pour un achat unique, à vie ?</h3>
+      <div class="chips" data-q="price" role="radiogroup" aria-label="Prix">
+        <button class="chip" data-v="moins-150">Moins de 150 €</button>
+        <button class="chip" data-v="150-250">150 à 250 €</button>
+        <button class="chip" data-v="250-400">250 à 400 €</button>
+        <button class="chip" data-v="plus-400">Plus de 400 €</button>
+        <button class="chip" data-v="je-sais-pas">Je ne sais pas encore</button>
+      </div>
+      <span class="saved">Réponse enregistrée.</span>
+    </div>
+  </div>
+</section>
+
+<!-- HONNÊTETÉ + AVIS -->
+<section class="act center">
+  <div class="wrap lit-me">
+    <h2 class="st">Cartes sur table.</h2>
+    <p class="lead st" style="margin-inline:auto">PiMind est un prototype avancé, conçu en France. Elle est moins rapide que les géants en ligne. En échange, elle ne coûte rien chaque mois, ne vous écoute pas pour vous vendre des choses, et ne disparaîtra pas du jour au lendemain.</p>
+    <div class="ask st" style="text-align:center">
+      <h3>Que pensez-vous de cette idée ?</h3>
+      <div class="stars" role="radiogroup" aria-label="Note sur 5">
+        <button class="star" data-v="1" aria-label="1 étoile">★</button>
+        <button class="star" data-v="2" aria-label="2 étoiles">★</button>
+        <button class="star" data-v="3" aria-label="3 étoiles">★</button>
+        <button class="star" data-v="4" aria-label="4 étoiles">★</button>
+        <button class="star" data-v="5" aria-label="5 étoiles">★</button>
+      </div>
+      <textarea id="opinion" placeholder="Votre avis, en une phrase ou en dix. Tout nous aide." aria-label="Votre avis"></textarea>
+      <div><span class="saved">Enregistré.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- FINALE -->
+<section class="act center" id="finale">
+  <div class="wrap lit-me">
+    <h2 class="st">Elle cherche ses <em>premières maisons.</em></h2>
+    <p class="lead st" style="margin-inline:auto">Laissez votre adresse pour être prévenu du lancement. Rien d'autre : pas de lettre hebdomadaire, pas de revente d'adresse.</p>
+    <div class="ask st" style="max-width:560px;margin:2rem auto 0;text-align:center">
+      <div class="chips" data-q="interest" role="radiogroup" aria-label="Votre intérêt">
+        <button class="chip" data-v="curieux">Simplement curieux</button>
+        <button class="chip" data-v="interesse">Intéressé</button>
+        <button class="chip" data-v="pret-acheter">Prêt à acheter</button>
+        <button class="chip" data-v="pro">Contact professionnel</button>
+      </div>
+      <label for="name">Votre prénom (facultatif)</label>
+      <input type="text" id="name" autocomplete="given-name">
+      <label for="email">Votre adresse e-mail</label>
+      <input type="email" id="email" autocomplete="email" placeholder="vous@exemple.fr">
+      <button class="btn" id="send">L'accueillir en premier</button>
+      <div class="msg" id="msg" role="status"></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <span>PiMind. Conçu en France.</span>
+  <span>Vos réponses restent confidentielles et ne sont jamais revendues.</span>
+</footer>
+
+<script>
+/* ---------- le film : progression de chaque scène pilotée par le scroll ---------- */
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const scenes = [...document.querySelectorAll(".scene")].map(sc=>{
+  const fx = [...sc.querySelectorAll("[data-fx]")].map(el=>{
+    el.style.transition = "none";           /* pilotés image par image, pas par transitions */
+    return { el, type: el.dataset.fx, at: parseFloat(el.dataset.at||".2"), span: parseFloat(el.dataset.span|| (el.dataset.fx==="draw" ? ".3" : ".12")) };
+  });
+  return { sc, frame: sc.querySelector(".frame"), first: sc.classList.contains("first"), fx };
+});
+const clamp = (v,a,b)=>Math.min(b,Math.max(a,v));
+const ease = t => 1-Math.pow(1-t,3);
+function film(){
+  const vh = innerHeight;
+  for (const {sc, frame, first, fx} of scenes){
+    const r = sc.getBoundingClientRect();
+    if (r.bottom < -50 || r.top > vh+50) continue;
+    /* p : 0 quand la scène entre, 1 quand elle sort */
+    const p = clamp((vh - r.top) / (r.height + vh), 0, 1);
+    let op, ty, bl;
+    const inEnd = .16, outStart = .82;
+    if (p < inEnd && !first){
+      const t = p/inEnd;
+      op = t; ty = (1-t)*8; bl = (1-t)*5;
+    } else if (p > outStart){
+      const t = (p-outStart)/(1-outStart);
+      op = 1-t; ty = -t*6; bl = t*5;
+    } else { op = 1; ty = 0; bl = 0; }
+    frame.style.opacity = op.toFixed(3);
+    frame.style.transform = ty ? `translateY(${ty.toFixed(2)}vh)` : "";
+    frame.style.filter = bl > .3 ? `blur(${bl.toFixed(1)}px)` : "";
+
+    /* chorégraphie : les éléments arrivent un à un, portés par le scroll */
+    for (const f of fx){
+      const t = ease(clamp((p - f.at)/f.span, 0, 1));
+      if (f.type === "draw"){
+        f.el.querySelectorAll(".draw").forEach(d=>d.style.strokeDashoffset = (600*(1-t)).toFixed(0));
+        f.el.querySelectorAll(".dot").forEach(d=>d.style.opacity = t>.85 ? 1 : 0);
+        f.el.style.opacity = Math.min(1, t*2).toFixed(3);
+        f.el.style.transform = `scale(${(.85+.15*t).toFixed(3)}) rotate(${((1-t)*-14).toFixed(1)}deg)`;
+      } else {
+        const dx = f.type==="left" ? -10*(1-t) : f.type==="right" ? 10*(1-t) : 0;
+        const dy = f.type==="up" ? 7*(1-t) : 0;
+        const sc2 = f.type==="zoom" ? .9+.1*t : 1;
+        f.el.style.opacity = t.toFixed(3);
+        f.el.style.transform = `translate(${dx.toFixed(2)}vw, ${dy.toFixed(2)}vh) scale(${sc2.toFixed(3)})`;
+      }
+    }
+  }
+}
+if (!reduced){
+  addEventListener("scroll", film, {passive:true});
+  addEventListener("resize", film, {passive:true});
+  (function loop(){ film(); requestAnimationFrame(loop); })();
+} else {
+  /* accessibilité : tout visible, sans chorégraphie */
+  document.querySelectorAll("[data-fx]").forEach(el=>{ el.style.opacity=1; el.style.transform="none";
+    el.querySelectorAll(".draw").forEach(d=>d.style.strokeDashoffset=0);
+    el.querySelectorAll(".dot").forEach(d=>d.style.opacity=1);
+  });
+}
+
+/* ---------- allumage des scènes (cascade interne) ---------- */
+const io = new IntersectionObserver(es => es.forEach(e => {
+  e.target.classList.toggle("lit", e.isIntersecting);
+}), { threshold:.35 });
+document.querySelectorAll(".scene .frame, .act .lit-me").forEach(el => io.observe(el));
+
+/* boutons du début */
+document.getElementById("startStory").addEventListener("click", () => {
+  document.querySelectorAll(".scene")[1].scrollIntoView({behavior:"smooth"});
+});
+document.getElementById("skipToEnd").addEventListener("click", () => {
+  document.getElementById("finale").scrollIntoView({behavior:"smooth"});
+});
+
+/* objections */
+document.querySelectorAll(".ob .head").forEach(h=>{
+  h.addEventListener("click",()=>h.closest(".ob").classList.toggle("open"));
+});
+
+/* ---------- état persistant + Firebase ---------- */
+const KEY = "pimind-story";
+const state = Object.assign(
+  { sessionId: crypto.randomUUID(), trust:"", needs:[], price:"", rating:0, opinion:"", interest:"", name:"", email:"", finalSent:false, partialSent:false },
+  JSON.parse(localStorage.getItem(KEY) || "{}")
+);
+const save = () => localStorage.setItem(KEY, JSON.stringify(state));
+const hasAnswers = () => state.trust || state.needs.length || state.price || state.rating || state.opinion || state.interest;
+
+function payload(partial){
+  return {
+    name: state.name || "(non précisé)",
+    email: state.email || "(non fourni)",
+    interest: state.interest || "curieux",
+    trust: state.trust, rating: state.rating, price: state.price,
+    needs: state.needs, opinion: state.opinion,
+    partial, sessionId: state.sessionId,
+    userAgent: navigator.userAgent
+  };
+}
+async function sendDoc(partial){
+  /* la couche Firebase se charge à part : on l'attend brièvement si besoin */
+  for (let i=0; i<40 && !window.pimindSend; i++) await new Promise(r=>setTimeout(r,250));
+  if (!window.pimindSend) return false;
+  try { return await window.pimindSend(payload(partial)); }
+  catch(e){ return false; }
+}
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden" && hasAnswers() && !state.finalSent && !state.partialSent){
+    state.partialSent = true; save();
+    sendDoc(true);
+  }
+});
+
+function flashSaved(scope){
+  const s = scope.closest(".ask")?.querySelector(".saved");
+  if (!s) return; s.classList.add("show"); clearTimeout(s._t); s._t = setTimeout(()=>s.classList.remove("show"), 1800);
+}
+document.querySelectorAll(".chips").forEach(box => {
+  const q = box.dataset.q, multi = box.hasAttribute("data-multi");
+  box.addEventListener("click", e => {
+    const b = e.target.closest(".chip"); if (!b) return;
+    if (multi){
+      b.classList.toggle("on");
+      state[q] = [...box.querySelectorAll(".chip.on")].map(x=>x.dataset.v);
+    } else {
+      box.querySelectorAll(".chip").forEach(x=>x.classList.toggle("on", x===b));
+      state[q] = b.dataset.v;
+    }
+    save(); flashSaved(box);
+  });
+  const v = state[q];
+  box.querySelectorAll(".chip").forEach(c => {
+    if (multi ? (v||[]).includes(c.dataset.v) : v === c.dataset.v) c.classList.add("on");
+  });
+});
+const stars = [...document.querySelectorAll(".star")];
+const paintStars = () => stars.forEach(s => s.classList.toggle("on", +s.dataset.v <= state.rating));
+document.querySelector(".stars").addEventListener("click", e => {
+  const s = e.target.closest(".star"); if (!s) return;
+  state.rating = +s.dataset.v; paintStars(); save(); flashSaved(s);
+});
+paintStars();
+const opinion = document.getElementById("opinion");
+opinion.value = state.opinion;
+opinion.addEventListener("input", () => { state.opinion = opinion.value.trim(); save(); });
+const nameEl = document.getElementById("name"), emailEl = document.getElementById("email");
+nameEl.value = state.name; emailEl.value = state.email;
+nameEl.addEventListener("input", ()=>{ state.name = nameEl.value.trim(); save(); });
+emailEl.addEventListener("input", ()=>{ state.email = emailEl.value.trim(); save(); });
+
+const btn = document.getElementById("send"), msg = document.getElementById("msg");
+btn.addEventListener("click", async () => {
+  msg.className = "msg";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(state.email)){
+    msg.textContent = "Une adresse e-mail valide est nécessaire pour vous prévenir du lancement.";
+    msg.classList.add("err"); return;
+  }
+  if (!state.interest){
+    msg.textContent = "Dites-nous simplement où vous en êtes, juste au-dessus.";
+    msg.classList.add("err"); return;
+  }
+  btn.disabled = true; msg.textContent = "Envoi en cours...";
+  const ok = await sendDoc(false);
+  if (ok){
+    state.finalSent = true; save();
+    msg.textContent = "Merci. Elle a trouvé une de ses premières maisons. Nous vous écrirons au lancement, et pour rien d'autre.";
+    msg.classList.add("ok");
+    btn.textContent = "C'est noté";
+  } else {
+    btn.disabled = false;
+    msg.textContent = "L'envoi n'a pas abouti. Vérifiez votre connexion et réessayez, vos réponses sont conservées.";
+    msg.classList.add("err");
+  }
+});
+if (state.finalSent){ btn.disabled = true; btn.textContent = "C'est noté"; }
+</script>
+
+<script type="module">
+/* couche d'envoi, chargée à part pour ne jamais bloquer la page */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+const app = initializeApp({
+  apiKey: "AIzaSyBJAkh8ecQYPhEr1JdLxAgrZe2cNuDP9Lk",
+  authDomain: "pimind-site.firebaseapp.com",
+  projectId: "pimind-site",
+  storageBucket: "pimind-site.firebasestorage.app",
+  messagingSenderId: "197707272237",
+  appId: "1:197707272237:web:4680bf68262e420032e8a4"
+});
+const db = getFirestore(app);
+window.pimindSend = async (data) => {
+  await addDoc(collection(db, "leads"), { ...data, createdAt: serverTimestamp() });
+  return true;
+};
+</script>
+</body>
+</html>
